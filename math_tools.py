@@ -241,6 +241,49 @@ def represent_wrench_to_B(wrench_a, transform_6d):
     return wrench_b
 
 
+def normalize(v, eps: float = 1e-8):
+    """L2 normalize last axis of v"""
+    return v / (np.linalg.norm(v, axis=-1, keepdims=True) + eps)
+
+
+def rotmat_to_rot6d(Rm: np.ndarray) -> np.ndarray:
+    """(…,3,3) → (…,6) : take first two columns"""
+    return Rm[..., :3, 0:2].reshape(*Rm.shape[:-2], 6)
+
+
+def rot6d_to_rotmat(d6: np.ndarray) -> np.ndarray:
+    """(…,6) → (…,3,3)"""
+    a1, a2 = d6[..., :3], d6[..., 3:]
+    b1 = normalize(a1)
+    b2 = normalize(a2 - np.sum(b1 * a2, axis=-1, keepdims=True) * b1)
+    b3 = np.cross(b1, b2, axis=-1)
+    return np.stack((b1, b2, b3), axis=-1)        # columns
+
+
+def pose6_to_pose9(pose6: np.ndarray) -> np.ndarray:
+    """
+    [x,y,z, roll,pitch,yaw]  ->  [x,y,z, rot6d]
+    pose6 shape (..., 6) ; returns same batch shape (..., 9)
+    """
+    pose6 = np.asarray(pose6, dtype=np.float32)
+    pos, rpy = pose6[..., :3], pose6[..., 3:]
+    rotmat = R.from_euler('XYZ', rpy, degrees=False).as_matrix()  # (...,3,3)
+    rot6d = rotmat_to_rot6d(rotmat)
+    return np.concatenate((pos, rot6d), axis=-1).astype(np.float32)
+
+
+def pose9_to_pose6(pose9: np.ndarray) -> np.ndarray:
+    """
+    [x,y,z, rot6d]  ->  [x,y,z, roll,pitch,yaw]
+    pose9 shape (..., 9) ; returns same batch shape (..., 6)
+    """
+    pose9 = np.asarray(pose9, dtype=np.float32)
+    pos, d6 = pose9[..., :3], pose9[..., 3:]
+    rotmat = rot6d_to_rotmat(d6)                                  # (...,3,3)
+    rpy = R.from_matrix(rotmat).as_euler('XYZ', degrees=False)    # (...,3)
+    return np.concatenate((pos, rpy), axis=-1).astype(np.float32)
+
+
 if __name__ == "__main__":
 
     wrenchA = [0, 0, 0, 0.0, 0.0, 0.2669428476]
