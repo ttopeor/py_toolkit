@@ -241,23 +241,29 @@ def represent_wrench_to_B(wrench_a, transform_6d):
     return wrench_b
 
 
-def normalize(v, eps: float = 1e-8):
-    """L2 normalize last axis of v"""
+def normalize(v: np.ndarray, eps: float = 1e-8) -> np.ndarray:
     return v / (np.linalg.norm(v, axis=-1, keepdims=True) + eps)
 
 
 def rotmat_to_rot6d(Rm: np.ndarray) -> np.ndarray:
     """(…,3,3) → (…,6) : take first two columns"""
-    return Rm[..., :3, 0:2].reshape(*Rm.shape[:-2], 6)
+    return Rm[..., :3, :2].reshape(*Rm.shape[:-2], 6, order="F").astype(np.float32)
 
 
 def rot6d_to_rotmat(d6: np.ndarray) -> np.ndarray:
-    """(…,6) → (…,3,3)"""
-    a1, a2 = d6[..., :3], d6[..., 3:]
-    b1 = normalize(a1)
-    b2 = normalize(a2 - np.sum(b1 * a2, axis=-1, keepdims=True) * b1)
-    b3 = np.cross(b1, b2, axis=-1)
-    return np.stack((b1, b2, b3), axis=-1)        # columns
+
+    d6 = np.asarray(d6, dtype=np.float32)
+    a1a2 = d6.reshape(*d6.shape[:-1], 3, 2, order="F")   # (...,3,2)
+    a1 = a1a2[..., 0]                                    # (...,3)
+    a2 = a1a2[..., 1]
+
+    b1 = normalize(a1)                           
+    proj = np.sum(b1 * a2, axis=-1, keepdims=True) * b1
+    b2 = normalize(a2 - proj)                     
+    b3 = np.cross(b1, b2)        
+
+    rot = np.stack((b1, b2, b3), axis=-1)                # (...,3,3)
+    return rot.astype(np.float32)
 
 
 def pose6_to_pose9(pose6: np.ndarray) -> np.ndarray:
