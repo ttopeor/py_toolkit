@@ -65,7 +65,8 @@ class DataFilter:
         if cov is None:  # fallback
             cov = np.eye(state_dim, dtype=np.float32) * default_cov_val
 
-        self.measurement_covariance: np.ndarray = np.asarray(cov, dtype=np.float32)
+        self.measurement_covariance: np.ndarray = np.asarray(
+            cov, dtype=np.float32)
         if self.measurement_covariance.shape != (state_dim, state_dim):
             raise ValueError(
                 f"Measurement covariance must be ({state_dim}, {state_dim})"
@@ -85,7 +86,8 @@ class DataFilter:
         """Set static offsets to be subtracted from incoming measurements."""
         offset_arr = np.asarray(offset_array, dtype=np.float32)
         if offset_arr.shape != (self.state_dim,):
-            raise ValueError(f"offset_array must have shape ({self.state_dim},)")
+            raise ValueError(
+                f"offset_array must have shape ({self.state_dim},)")
         self.offsets = offset_arr
 
     def filter_data(self, input_array: Sequence[float]) -> np.ndarray:
@@ -104,7 +106,8 @@ class DataFilter:
         """
         z = np.asarray(input_array, dtype=np.float32)
         if z.shape != (self.state_dim,):
-            raise ValueError(f"input_array must have shape ({self.state_dim},)")
+            raise ValueError(
+                f"input_array must have shape ({self.state_dim},)")
 
         # Apply offsets
         z_adj = z - self.offsets
@@ -137,3 +140,14 @@ class DataFilter:
         self.prev_estimate = current_est
 
         return current_est
+
+    def reset(self) -> None:
+        """
+        Reset the filter's internal state.
+
+        This clears the previous estimate and covariance, so the next call
+        to `filter_data` will treat the input as the first measurement.
+        """
+        self.prev_estimate = np.zeros(self.state_dim, dtype=np.float32)
+        self.estimate_covariance = self.measurement_covariance.copy()
+        self.initialized = False
