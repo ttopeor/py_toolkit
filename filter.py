@@ -56,7 +56,7 @@ class DataFilter:
         self.offsets: np.ndarray = np.zeros(state_dim, dtype=np.float32)
         self.prev_estimate: np.ndarray = np.zeros(state_dim, dtype=np.float32)
         self.initialized: bool = False
-
+        self.smooth_factor = smooth_factor
         # ── measurement covariance ───────────────────────────────────
         cov = None
         if cov_name is not None:
