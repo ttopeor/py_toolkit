@@ -257,10 +257,10 @@ def rot6d_to_rotmat(d6: np.ndarray) -> np.ndarray:
     a1 = a1a2[..., 0]                                    # (...,3)
     a2 = a1a2[..., 1]
 
-    b1 = normalize(a1)                           
+    b1 = normalize(a1)
     proj = np.sum(b1 * a2, axis=-1, keepdims=True) * b1
-    b2 = normalize(a2 - proj)                     
-    b3 = np.cross(b1, b2)        
+    b2 = normalize(a2 - proj)
+    b3 = np.cross(b1, b2)
 
     rot = np.stack((b1, b2, b3), axis=-1)                # (...,3,3)
     return rot.astype(np.float32)
@@ -288,6 +288,75 @@ def pose9_to_pose6(pose9: np.ndarray) -> np.ndarray:
     rotmat = rot6d_to_rotmat(d6)                                  # (...,3,3)
     rpy = R.from_matrix(rotmat).as_euler('XYZ', degrees=False)    # (...,3)
     return np.concatenate((pos, rpy), axis=-1).astype(np.float32)
+
+
+def random_perturb_and_apply(
+    pose,                        # [x, y, z, roll, pitch, yaw]
+    *,
+    trans_mu=0.0,                # mean for translation noise
+    trans_sigma=0.005,           # stddev for translation noise (m)
+    rot_mu=0.0,                  # mean for rotation noise
+    rot_sigma=np.deg2rad(1.0),   # stddev for rotation noise (rad)
+    trans_bounds=(-0.02, 0.02),  # (min, max) bounds for translation noise (m)
+    # (min, max) bounds for rotation noise (rad)
+    rot_bounds=(-np.deg2rad(5), np.deg2rad(5))
+):
+    """
+    Add Gaussian noise to [x, y, z, roll, pitch, yaw] with specified bounds,
+    then apply the delta using parent_to_child.
+
+    Parameters
+    ----------
+    pose : list or tuple of 6 floats
+        [x, y, z, roll, pitch, yaw], in meters and radians.
+    trans_mu : float or [3]
+        Mean for translation noise (per-axis or scalar).
+    trans_sigma : float or [3]
+        Stddev for translation noise (per-axis or scalar).
+    rot_mu : float or [3]
+        Mean for rotation noise (per-axis or scalar).
+    rot_sigma : float or [3]
+        Stddev for rotation noise (per-axis or scalar).
+    trans_bounds : (float, float)
+        Min and max clipping bounds for translation noise.
+    rot_bounds : (float, float)
+        Min and max clipping bounds for rotation noise.
+
+    Returns
+    -------
+    final_pose : tuple
+        Pose after applying noise, format [x, y, z, roll, pitch, yaw].
+    delta : tuple
+        The applied noise [dx, dy, dz, droll, dpitch, dyaw].
+    """
+    # Ensure inputs are arrays of length 3
+    def to3(v):
+        if isinstance(v, (list, tuple, np.ndarray)):
+            if len(v) != 3:
+                raise ValueError("Expected length=3 for per-axis value")
+            return np.array(v, dtype=float)
+        return np.full(3, float(v))
+
+    mu_t, sig_t = to3(trans_mu), to3(trans_sigma)
+    mu_r, sig_r = to3(rot_mu), to3(rot_sigma)
+
+    lo_t, hi_t = float(trans_bounds[0]), float(trans_bounds[1])
+    lo_r, hi_r = float(rot_bounds[0]),  float(rot_bounds[1])
+
+    # Sample translation noise
+    trans_noise = np.random.normal(mu_t, sig_t)
+    trans_noise = np.clip(trans_noise, lo_t, hi_t)
+
+    # Sample rotation noise
+    rot_noise = np.random.normal(mu_r, sig_r)
+    rot_noise = np.clip(rot_noise, lo_r, hi_r)
+
+    delta = tuple(trans_noise.tolist() + rot_noise.tolist())
+
+    parent_pose = tuple(float(x) for x in pose)
+    final_pose = parent_to_child(parent_pose, delta)
+
+    return final_pose, delta
 
 
 if __name__ == "__main__":
