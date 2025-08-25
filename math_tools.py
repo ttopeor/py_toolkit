@@ -294,37 +294,20 @@ def random_perturb_and_apply(
     pose,                        # [x, y, z, roll, pitch, yaw]
     *,
     trans_mu=0.0,                # mean for translation noise
-    trans_sigma=0.005,           # stddev for translation noise (m)
+    trans_sigma=0.01,           # stddev for translation noise (m)
     rot_mu=0.0,                  # mean for rotation noise
-    rot_sigma=np.deg2rad(1.0),   # stddev for rotation noise (rad)
-    trans_bounds=(-0.02, 0.02),  # (min, max) bounds for translation noise (m)
+    rot_sigma=np.deg2rad(2.5),   # stddev for rotation noise (rad)
+    trans_bounds=(-0.03, 0.03),  # (min, max) bounds for translation noise (m)
     # (min, max) bounds for rotation noise (rad)
-    rot_bounds=(-np.deg2rad(5), np.deg2rad(5))
+    rot_bounds=(-np.deg2rad(7), np.deg2rad(7))
 ):
     """
     Add Gaussian noise to [x, y, z, roll, pitch, yaw] with specified bounds,
     then apply the delta using parent_to_child.
 
-    Parameters
-    ----------
-    pose : list or tuple of 6 floats
-        [x, y, z, roll, pitch, yaw], in meters and radians.
-    trans_mu : float or [3]
-        Mean for translation noise (per-axis or scalar).
-    trans_sigma : float or [3]
-        Stddev for translation noise (per-axis or scalar).
-    rot_mu : float or [3]
-        Mean for rotation noise (per-axis or scalar).
-    rot_sigma : float or [3]
-        Stddev for rotation noise (per-axis or scalar).
-    trans_bounds : (float, float)
-        Min and max clipping bounds for translation noise.
-    rot_bounds : (float, float)
-        Min and max clipping bounds for rotation noise.
-
     Returns
     -------
-    final_pose : tuple
+    final_pose : list
         Pose after applying noise, format [x, y, z, roll, pitch, yaw].
     delta : tuple
         The applied noise [dx, dy, dz, droll, dpitch, dyaw].
@@ -355,6 +338,10 @@ def random_perturb_and_apply(
 
     parent_pose = tuple(float(x) for x in pose)
     final_pose = parent_to_child(parent_pose, delta)
+
+    # Ensure final_pose is list
+    final_pose = list(final_pose)
+    final_pose = [float(x) for x in final_pose]
 
     return final_pose, delta
 
