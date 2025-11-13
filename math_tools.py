@@ -2,6 +2,12 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 
+def invert_position(position):
+    position_matrix = position_to_trans_matrix(position)
+    position_matrix_inv = np.linalg.inv(position_matrix)
+    position_inv = trans_matrix_to_position(position_matrix_inv)
+    return position_inv
+
 def position_to_trans_matrix(transform):
     """
     Converts position [x, y, z] and Euler angles [roll, pitch, yaw] (in radians)
