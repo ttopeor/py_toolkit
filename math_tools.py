@@ -8,6 +8,7 @@ def invert_position(position):
     position_inv = trans_matrix_to_position(position_matrix_inv)
     return position_inv
 
+
 def position_to_trans_matrix(transform):
     """
     Converts position [x, y, z] and Euler angles [roll, pitch, yaw] (in radians)
@@ -240,8 +241,6 @@ def represent_wrench_to_B(wrench_a, transform_6d):
 
     f_b = R_AB.T @ f_a - R_AB.T @ cross_term
     tau_b = R_AB.T @ tau_a
-    # tau_b[1] *= -1
-    # tau_b[2] *= -1
 
     wrench_b = np.concatenate([f_b, tau_b])
     return wrench_b
@@ -350,6 +349,18 @@ def random_perturb_and_apply(
     final_pose = [float(x) for x in final_pose]
 
     return final_pose, delta
+
+
+def print_array(name: str, a: np.ndarray) -> str:
+
+    contain = np.array2string(
+        a,
+        precision=6,
+        suppress_small=True,
+        floatmode="fixed",
+        max_line_width=120,
+    )
+    print(name + ": ", contain)
 
 
 if __name__ == "__main__":
