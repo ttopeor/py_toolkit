@@ -28,8 +28,8 @@ class ImpedanceController6D:
     def update(self, p: Sequence[float], dt: float) -> np.ndarray:
         p = np.array(p, dtype=float)
 
-        e_p = calculate_delta_position(p, self.p_d)
-        e_v_raw = calculate_delta_position(p, self._last_p) / dt
+        e_p = calculate_delta_position(self.p_d, p)
+        e_v_raw = calculate_delta_position(self._last_p, p) / dt
 
         alpha = dt / (self.vel_tau + dt)
         # e_v_est(k) = e_v_est(k-1) + alpha * (raw - e_v_est(k-1))
