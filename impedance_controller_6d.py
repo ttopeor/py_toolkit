@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Sequence
-from py_toolkit.math_tools import calculate_delta_position
+from py_toolkit.math_tools import calculate_delta_position, print_array
 
 
 class ImpedanceController6D:
@@ -37,7 +37,5 @@ class ImpedanceController6D:
         e_v = self._e_v_est
 
         F_cmd = self.K * e_p + self.B * e_v
-
         self._last_p = p
-
         return F_cmd
