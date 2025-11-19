@@ -23,11 +23,7 @@ class AdmittanceController6D:
 
     def update(self, F_ext: Sequence[float], dt: float) -> np.ndarray:
         F_ext = np.array(F_ext, dtype=float)
-        e_f = self.F_ext_d - F_ext
-
-        # M * a + B * v = e_f  ->  a = (e_f - B * v) / M
-        # a = (e_f - self.B * self._last_v) / self.M
-        # v = self._last_v + a * dt
+        e_f = F_ext - self.F_ext_d
 
         v = e_f / self.B
 
@@ -35,5 +31,4 @@ class AdmittanceController6D:
 
         self.p = parent_to_child(self.p, delta_p)
 
-        # self._last_v = v
         return self.p
